@@ -1,26 +1,73 @@
+import { Button, Form, Input, Space, message } from 'antd';
+import dayjs from 'dayjs';
 import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import styled from 'styled-components';
+import { checkUsingLuhnAlg } from './helpers/luhn';
+import { Result } from './types/common';
+import HistoryTable from './components/table.component';
 
-function App() {
+const Container = styled.div`
+  height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+`;
+
+const App = () => {
+  const [messageApi] = message.useMessage();
+  const [rows, setRows] = React.useState<Result[]>([]);
+  const [form] = Form.useForm();
+
+  const onFinish = ({ value }: { value: string }) => {
+    const newRow = {
+      value,
+      time: dayjs().format(),
+      valid: checkUsingLuhnAlg(value),
+    };
+    messageApi.open({
+      type: newRow.valid ? 'success' : 'error',
+      content: `${value} is not a valid Credit Card.`,
+    });
+    console.log(newRow);
+    setRows([newRow, ...rows]);
+  };
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
+    <Container>
+      <Form form={form} onFinish={onFinish}>
+        <Form.Item
+          name="value"
+          rules={[
+            { pattern: /\d{16}/g, message: 'Field should have 16 number.' },
+          ]}
+          shouldUpdate
         >
-          Learn React
-        </a>
-      </header>
-    </div>
+          <Space.Compact style={{ width: '100%' }}>
+            <Input placeholder="Credit card number" />
+            <Form.Item style={{ margin: 0 }} shouldUpdate>
+              {() => (
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  disabled={
+                    !form.isFieldsTouched(true) ||
+                    !!form
+                      .getFieldsError()
+                      .filter(({ errors }) => errors.length).length
+                  }
+                >
+                  Check
+                </Button>
+              )}
+            </Form.Item>
+          </Space.Compact>
+        </Form.Item>
+      </Form>
+      <HistoryTable rows={rows} />
+    </Container>
   );
-}
+};
 
 export default App;
